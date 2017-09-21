@@ -1,0 +1,96 @@
+import android.os.Bundle;
+import android.support.annotation.Nullable;
+import android.support.v7.app.AppCompatDelegate;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.util.Log;
+import android.view.View;
+
+import java.util.ArrayList;
+
+import javax.inject.Inject;
+
+import butterknife.BindView;
+import butterknife.ButterKnife;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import ru.valerevich.dmitriy.newsaggregatorgdg.MyApplication;
+import ru.valerevich.dmitriy.newsaggregatorgdg.R;
+import ru.valerevich.dmitriy.newsaggregatorgdg.common.adapters.NewsFeedAdapter;
+import ru.valerevich.dmitriy.newsaggregatorgdg.rest.api.NewsFeedApi;
+import ru.valerevich.dmitriy.newsaggregatorgdg.rest.model.request.NewsFeedGetRequestModel;
+import ru.valerevich.dmitriy.newsaggregatorgdg.rest.model.response.NewsFeedGetResponse;
+
+/**
+ *
+ */
+public class NewsFeedFragment extends BaseFragment {
+
+    @Inject
+    NewsFeedApi mNewsFeedApi;
+
+    @BindView(R.id.rv_news_feed_list)
+    RecyclerView mNewsFeedRecyclerView;
+    private RecyclerView.LayoutManager mNewsFeedLayoutManager;
+    private NewsFeedAdapter mNewsFeedAdapter;
+
+    private ArrayList<String> listNews = new ArrayList<>();
+
+    public NewsFeedFragment() {
+        // Required empty public constructor
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        AppCompatDelegate.setCompatVectorFromResourcesEnabled(true);
+        MyApplication.getApplicationComponent().inject(this);
+    }
+
+    @Override
+    public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        ButterKnife.bind(this, view);
+    }
+
+    @Override
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+
+        mNewsFeedApi.get(new NewsFeedGetRequestModel().toMap()).enqueue(new Callback<NewsFeedGetResponse>() {
+            @Override
+            public void onResponse(Call<NewsFeedGetResponse> call, Response<NewsFeedGetResponse> response) {
+
+                if (response.isSuccessful()) {
+                    NewsFeedGetResponse myNews = response.body();
+                    mNewsFeedLayoutManager = new LinearLayoutManager(getContext());
+                    mNewsFeedRecyclerView.setLayoutManager(mNewsFeedLayoutManager);
+                    mNewsFeedAdapter = new NewsFeedAdapter(myNews.response.getItems());
+                    mNewsFeedRecyclerView.setAdapter(mNewsFeedAdapter);
+                    mNewsFeedAdapter.notifyDataSetChanged();
+
+                } else {
+                    Log.i("Call API", "it's a not NewsFormat");
+                }
+            }
+
+            @Override
+            public void onFailure(Call<NewsFeedGetResponse> call, Throwable t) {
+                t.printStackTrace();
+            }
+        });
+    }
+
+    @Override
+    protected int getMainContentLayout() {
+        return R.layout.fragment_news_feed;
+    }
+
+    @Override
+    public int onCreateToolbarTitle() {
+        return R.string.screen_name_news;
+    }
+
+}
