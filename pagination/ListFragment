@@ -1,0 +1,102 @@
+public class ListFragment extends Fragment{
+    private RecyclerView mRecyclerView;
+
+    private ListAdapter mAdapter;
+
+    private ModelLab mModelLab;
+
+    private List<Model> mItems;
+
+    private int mIndex = 0;
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        mModelLab = ModelLab.get(getActivity());
+    }
+
+    @Override
+    public View onCreateView(
+            LayoutInflater inflater, ViewGroup container , Bundle savedInstanceState) {
+        View view = inflater.inflate(R.layout.list_fragment, container, false);
+
+        mItems = getItems(mIndex);
+
+        mRecyclerView = (RecyclerView) view
+                .findViewById(R.id.list_recycler_view);
+        mRecyclerView.setHasFixedSize(true);
+
+        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(getContext(), LinearLayoutManager.VERTICAL, false);
+     
+        mRecyclerView.setLayoutManager(linearLayoutManager);
+
+        updateUI();
+
+
+        return view;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        updateUI();
+    }
+
+    private void updateUI(){
+        if (mAdapter == null) {
+            mAdapter = new ListAdapter(mItems, mRecyclerView);
+            mRecyclerView.setAdapter(mAdapter);
+        } else {
+            mAdapter.notifyDataSetChanged();
+        }
+
+        mAdapter.setOnLoadMoreListener(new OnLoadMoreListener() {
+            @Override
+            public void onLoadMore() {
+                mRecyclerView.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        mItems.add(null);
+                        mAdapter.notifyItemInserted(mItems.size() - 1);
+                    }
+                });
+
+                new Handler().postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+
+                        mItems.remove(mItems.size() - 1);
+                        mAdapter.notifyItemRemoved(mItems.size());
+
+                        mIndex = mItems.size();
+                        mItems = getItems(mIndex);
+
+                        mAdapter.setLoading(false);
+                    }
+                },10000);
+            }
+        });
+    }
+
+    private List<Model> getItems(int index){
+
+
+        List<Model> mList;
+        for (int i = index; i < index + 10; i++){
+            ArrayList<String> tmpUrl = new ArrayList<>();
+            Model model = new Model();
+            String name = "Раздел: " + i;
+            model.setName(name);
+            model.setDescription("Описание.");
+
+            for (int j = 0; j < 5; j++){
+                tmpUrl.add("http://www.url.ru/number:" + j + "/name:"+  name + "/" + model.getId());
+            }
+            model.setUrlPhoto(tmpUrl);
+            mModelLab.addModel(model);
+        }
+        mList = mModelLab.getModels();
+        return mList;
+    }
+}
